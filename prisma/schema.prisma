@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String  @id @default(uuid())
+  email      String  @unique @map("user_email")
+  userName   String  @unique
+  profileImg String?
+  password   String
+  role       Role    @default(USER)
+  posts      Post[]
+  comments   Comment[]
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  USER
+  MAINADMIN
+  COMPANY
+}
+
+model Category {
+  id            String       @id @default(cuid())
+  name          String       @unique
+  subCategories SubCategory[]
+}
+
+model SubCategory {
+  id               String         @id @default(cuid())
+  name             String
+  categoryId       String
+  category         Category       @relation(fields: [categoryId], references: [id])
+  subSubCategories SubSubCategory[]
+}
+
+model SubSubCategory {
+  id              String       @id @default(cuid())
+  name            String
+  subCategoryId   String
+  subCategory     SubCategory  @relation(fields: [subCategoryId], references: [id])
+  chooses         Choose[]
+  posts          Post[]
+}
+
+model Choose {
+  id               String       @id @default(cuid())
+  name             String
+  subSubCategoryId String
+  subSubCategory   SubSubCategory @relation(fields: [subSubCategoryId], references: [id])
+  options         ChooseOption[]
+}
+
+model ChooseOption {
+  id       String  @id @default(cuid())
+  name     String
+  chooseId String
+  choose   Choose @relation(fields: [chooseId], references: [id])
+}
+
+model Post {
+  id              String           @id @default(cuid())
+  title           String
+  quantity        Int
+  views           Int      @default(0)
+  description     String
+  status          PostStatus @default(DRAFT)
+  images          PostImage[]
+  userId          String?
+  user            User? @relation(fields: [userId], references: [id])
+  subSubCategoryId String?        
+  subSubCategory  SubSubCategory? @relation(fields: [subSubCategoryId], references: [id])
+  selectedChooses SelectedChoose[]
+  comments        Comment[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?  // Soft delete
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model PostImage {
+  id        String  @id @default(cuid())
+  url       String
+  postId    String
+  post      Post @relation(fields: [postId], references: [id])
+}
+
+model SelectedChoose {
+  id              String     @id @default(cuid())
+  choosesName     String
+  selectedOption  String
+  postId          String
+  post            Post   @relation(fields: [postId], references: [id])
+}
+
+model Comment {
+  id         String  @id @default(cuid())
+  content    String
+  userId     String
+  user       User    @relation(fields: [userId], references: [id])
+  postId     String
+  post       Post    @relation(fields: [postId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
