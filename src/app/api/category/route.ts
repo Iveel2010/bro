@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // Adjust the path to your Prisma client
+import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Check if the category already exists
     const existingCategory = await prisma.category.findUnique({
       where: { name: body.name },
     });
@@ -17,7 +16,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create the new category with subcategories, subsubcategories, and choices
     const category = await prisma.category.create({
       data: {
         name: body.name,

@@ -1,298 +1,336 @@
 "use client";
-
-import React, { useState } from "react";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Search, Menu, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-const Page = () => {
-  // Main category state
-  const [categoryName, setCategoryName] = useState("");
+// Category Data
+const categoryData = [
+  {
+    name: "Үл хөдлөх",
+    subCategories: [
+      { name: "Үл хөдлөх зарна" },
+      { name: "Үл хөдлөх түрээслүүлнэ" },
+      { name: "Гараж зарна" },
+      { name: "Оффис зарна" },
+    ],
+  },
+  {
+    name: "Техник хэрэгсэл",
+    subCategories: [
+      { name: "Утас" },
+      { name: "Компьютер" },
+      { name: "Гэр ахуйн техник" },
+      { name: "Камер, зураг" },
+    ],
+  },
+  {
+    name: "Тээврийн хэрэгсэл",
+    subCategories: [
+      { name: "Автомашин" },
+      { name: "Мотоцикл" },
+      { name: "Дугуй" },
+      { name: "Самолет" },
+    ],
+  },
+  {
+    name: "Ажил, Мэргэжил",
+    subCategories: [
+      { name: "Ажил хайх" },
+      { name: "Ажилтан хайх" },
+      { name: "Фриланс" },
+    ],
+  },
+  {
+    name: "Хувцас, гоёл чимэглэл",
+    subCategories: [
+      { name: "Эрэгтэй хувцас" },
+      { name: "Эмэгтэй хувцас" },
+      { name: "Гоёл чимэглэл" },
+    ],
+  },
+  {
+    name: "Спорт, фитнес",
+    subCategories: [
+      { name: "Фитнес тоног төхөөрөмж" },
+      { name: "Дугуй, тээвэр" },
+      { name: "Бусад" },
+    ],
+  },
+];
 
-  // Sub-categories state
-  const [subCategories, setSubCategories] = useState([
-    {
-      name: "",
-      subSubCategories: [
-        {
-          name: "",
-          chooses: [
-            {
-              name: "",
-              options: [""],
-            },
-          ],
-        },
-      ],
-    },
-  ]);
+// Listings Data
+const listings = [
+  {
+    id: 1,
+    title: "2 өрөө байр зарна",
+    price: "180 сая ₮",
+    image:
+      "https://cdn1.unegui.mn/media/cache1/15/22/15227fac500cd64891d2f6e9f536bd1a.jpg",
+    category: "Үл хөдлөх зарна",
+  },
+  {
+    id: 2,
+    title: "3 өрөө байр түрээслүүлнэ",
+    price: "1.5 сая ₮/сар",
+    image:
+      "https://cdn1.unegui.mn/media/cache1/15/22/15227fac500cd64891d2f6e9f536bd1a.jpg",
+    category: "Үл хөдлөх түрээслүүлнэ",
+  },
+  {
+    id: 3,
+    title: "Хувийн оффис зарна",
+    price: "250 сая ₮",
+    image:
+      "https://cdn1.unegui.mn/media/cache1/27/fd/27fd7717c734d5a191a76b7dc2aeb0d6.jpg",
+    category: "Үл хөдлөх зарна",
+  },
+  {
+    id: 4,
+    title: "Гараж түрээслүүлнэ",
+    price: "500,000 ₮/сар",
+    image: "https://www.metgar.ru/editor_images/4x6/4-6-5-mitten-sg-1.jpg",
+    category: "Үл хөдлөх түрээслүүлнэ",
+  },
+  {
+    id: 5,
+    title: "iPhone 14 Pro Max зарна",
+    price: "3,500,000 ₮",
+    image:
+      "https://alephksa.com/cdn/shop/files/iPhone_14_Pro_Max_Deep_Purple_PDP_Image_Position-1a_EN_2cc4a45e-68a5-4280-a1c6-61216aadc236.jpg?v=1688732636",
+    category: "Утас",
+  },
+  {
+    id: 6,
+    title: "MacBook Pro 16 M2 зарна",
+    price: "6,000,000 ₮",
+    image:
+      "https://www.cnet.com/a/img/resize/9624241ec6785ab68e2092e9656bc16c73d75cb1/hub/2023/01/21/ec79d7fc-9235-4830-8fc1-77db12800b97/apple-macbook-pro-16-2023-3214.jpg?auto=webp&fit=crop&height=1200&width=1200",
+    category: "Компьютер",
+  },
+  {
+    id: 7,
+    title: "Toyota Prius 2020 зарна",
+    price: "45,000,000 ₮",
+    image:
+      "https://media.ed.edmunds-media.com/toyota/prius-prime/2020/oem/2020_toyota_prius-prime_4dr-hatchback_limited_fq_oem_1_1600.jpg",
+    category: "Автомашин",
+  },
+  {
+    id: 8,
+    title: "Хүүхдийн дугуй зарна",
+    price: "150,000 ₮",
+    image:
+      "https://ubn.mn/storage/10.23/%D0%B7%D1%83%D1%80%D0%B0%D0%B311%20%2898%29.jpg",
+    category: "Дугуй",
+  },
+  {
+    id: 9,
+    title: "Samsung Galaxy S23 Ultra зарна",
+    price: "4,200,000 ₮",
+    image: "https://m.media-amazon.com/images/I/71EYdOx09+L._AC_SL1500_.jpg",
+    category: "Утас",
+  },
+  {
+    id: 10,
+    title: "Хувцасны шүүгээ зарна",
+    price: "200,000 ₮",
+    image:
+      "https://mrp.market.mn/product_images/image/000/027/545/original.webp?1701412796",
+    category: "Гэр ахуйн техник",
+  },
+  {
+    id: 11,
+    title: "Фитнес дугуй зарна",
+    price: "1,200,000 ₮",
+    image: "https://www.dhzfitness.com/uploads/X962-Spinning-Bike_3.jpg",
+    category: "Спорт, фитнес",
+  },
+  {
+    id: 12,
+    title: "Алтан бөгж зарна",
+    price: "1,500,000 ₮",
+    image:
+      "https://cdnp.cody.mn/spree/images/2830034/zoom/DSC03605_copy.jpg?1738167418",
+    category: "Гоёл чимэглэл",
+  },
+];
 
-  // Handle changes for sub-categories
-  const handleSubCategoryChange = (index: number, value: string) => {
-    const updatedSubCategories = [...subCategories];
-    updatedSubCategories[index].name = value;
-    setSubCategories(updatedSubCategories);
-  };
+export default function HomePage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedSubCategory, setSelectedSubCategory] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const listingsPerPage = 8;
 
-  // Handle changes for sub-sub-categories
-  const handleSubSubCategoryChange = (
-    subCatIndex: number,
-    subSubCatIndex: number,
-    value: string
-  ) => {
-    const updatedSubCategories = [...subCategories];
-    updatedSubCategories[subCatIndex].subSubCategories[subSubCatIndex].name =
-      value;
-    setSubCategories(updatedSubCategories);
-  };
+  // Filter Listings
+  const filteredListings = listings.filter((item) => {
+    const matchesSearch = item.title
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory
+      ? item.category.includes(selectedCategory)
+      : true;
+    const matchesSubCategory = selectedSubCategory
+      ? item.category === selectedSubCategory
+      : true;
+    return matchesSearch && matchesCategory && matchesSubCategory;
+  });
 
-  // Handle changes for chooses
-  const handleChooseChange = (
-    subCatIndex: number,
-    subSubCatIndex: number,
-    chooseIndex: number,
-    value: string
-  ) => {
-    const updatedSubCategories = [...subCategories];
-    updatedSubCategories[subCatIndex].subSubCategories[subSubCatIndex].chooses[
-      chooseIndex
-    ].name = value;
-    setSubCategories(updatedSubCategories);
-  };
+  // Pagination Logic
+  const indexOfLastListing = currentPage * listingsPerPage;
+  const indexOfFirstListing = indexOfLastListing - listingsPerPage;
+  const currentListings = filteredListings.slice(
+    indexOfFirstListing,
+    indexOfLastListing
+  );
 
-  // Handle changes for options
-  const handleOptionChange = (
-    subCatIndex: number,
-    subSubCatIndex: number,
-    chooseIndex: number,
-    optionIndex: number,
-    value: string
-  ) => {
-    const updatedSubCategories = [...subCategories];
-    updatedSubCategories[subCatIndex].subSubCategories[subSubCatIndex].chooses[
-      chooseIndex
-    ].options[optionIndex] = value;
-    setSubCategories(updatedSubCategories);
-  };
-
-  // Add new sub-category
-  const addSubCategory = () => {
-    setSubCategories([
-      ...subCategories,
-      {
-        name: "",
-        subSubCategories: [
-          {
-            name: "",
-            chooses: [
-              {
-                name: "",
-                options: [""],
-              },
-            ],
-          },
-        ],
-      },
-    ]);
-  };
-
-  // Add new sub-sub-category
-  const addSubSubCategory = (subCatIndex: number) => {
-    const updatedSubCategories = [...subCategories];
-    updatedSubCategories[subCatIndex].subSubCategories.push({
-      name: "",
-      chooses: [
-        {
-          name: "",
-          options: [""],
-        },
-      ],
-    });
-    setSubCategories(updatedSubCategories);
-  };
-
-  // Add new choose
-  const addChoose = (subCatIndex: number, subSubCatIndex: number) => {
-    const updatedSubCategories = [...subCategories];
-    updatedSubCategories[subCatIndex].subSubCategories[
-      subSubCatIndex
-    ].chooses.push({
-      name: "",
-      options: [""],
-    });
-    setSubCategories(updatedSubCategories);
-  };
-
-  // Add new option
-  const addOption = (
-    subCatIndex: number,
-    subSubCatIndex: number,
-    chooseIndex: number
-  ) => {
-    const updatedSubCategories = [...subCategories];
-    updatedSubCategories[subCatIndex].subSubCategories[subSubCatIndex].chooses[
-      chooseIndex
-    ].options.push("");
-    setSubCategories(updatedSubCategories);
-  };
-
-  // Handle form submission
-  const handleSubmit = async () => {
-    const categoryData = {
-      name: categoryName,
-      subCategories: subCategories,
-    };
-
-    try {
-      const response = await fetch("/api/category", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(categoryData),
-      });
-
-      const data = await response.json();
-      console.log("Category created:", data);
-    } catch (error) {
-      console.error("Error submitting category data", error);
-    }
-  };
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
-    <div className="container mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create Category</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Category Name Input */}
-            <div>
-              <Label>Category Name:</Label>
-              <Input
-                type="text"
-                value={categoryName}
-                onChange={(e) => setCategoryName(e.target.value)}
+    <div className="container mx-auto p-6">
+      {/* Navbar */}
+      <div className="flex items-center justify-between py-4 mb-8 border-b border-gray-200">
+        <h1 className="text-3xl font-bold text-gray-800">Unegui.mn</h1>
+        <Button variant="outline" className="text-gray-700 hover:text-gray-900">
+          <Menu className="w-6 h-6" />
+        </Button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="flex items-center gap-4 mb-8">
+        <Input
+          placeholder="Юу хайж байна?"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <Button
+          variant="default"
+          className="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          <Search className="w-5 h-5" />
+        </Button>
+      </div>
+
+      {/* Category Filter */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-wrap gap-4 mb-6"
+      >
+        {categoryData.map((category) => (
+          <div key={category.name} className="relative">
+            {/* Main Category Button */}
+            <Button
+              variant={selectedCategory === category.name ? "default" : "ghost"}
+              onClick={() => {
+                setSelectedCategory(
+                  selectedCategory === category.name ? "" : category.name
+                );
+                setSelectedSubCategory("");
+              }}
+              className="flex items-center gap-2 px-6 py-3 rounded-lg transition-all duration-300 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <span className="font-semibold">{category.name}</span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-300 ${
+                  selectedCategory === category.name ? "rotate-180" : ""
+                }`}
               />
-            </div>
+            </Button>
 
-            {/* Sub-Categories */}
-            {subCategories.map((subCategory, subCatIndex) => (
-              <div key={subCatIndex} className="space-y-4 border p-4 rounded">
-                <Label>Sub-Category Name:</Label>
-                <Input
-                  type="text"
-                  value={subCategory.name}
-                  onChange={(e) =>
-                    handleSubCategoryChange(subCatIndex, e.target.value)
-                  }
-                />
-
-                {/* Sub-Sub-Categories */}
-                {subCategory.subSubCategories.map(
-                  (subSubCategory, subSubCatIndex) => (
-                    <div
-                      key={subSubCatIndex}
-                      className="space-y-4 border p-4 rounded"
-                    >
-                      <Label>Sub-Sub-Category Name:</Label>
-                      <Input
-                        type="text"
-                        value={subSubCategory.name}
-                        onChange={(e) =>
-                          handleSubSubCategoryChange(
-                            subCatIndex,
-                            subSubCatIndex,
-                            e.target.value
+            {/* Subcategory Dropdown */}
+            <AnimatePresence>
+              {selectedCategory === category.name && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute top-12 left-0 bg-white shadow-lg rounded-lg p-4 w-64 z-10"
+                >
+                  <div className="flex flex-col gap-2">
+                    {category.subCategories.map((subCategory) => (
+                      <Button
+                        key={subCategory.name}
+                        variant={
+                          selectedSubCategory === subCategory.name
+                            ? "default"
+                            : "ghost"
+                        }
+                        onClick={() =>
+                          setSelectedSubCategory(
+                            selectedSubCategory === subCategory.name
+                              ? ""
+                              : subCategory.name
                           )
                         }
-                      />
-
-                      {/* Chooses */}
-                      {subSubCategory.chooses.map((choose, chooseIndex) => (
-                        <div
-                          key={chooseIndex}
-                          className="space-y-4 border p-4 rounded"
-                        >
-                          <Label>Choose Name:</Label>
-                          <Input
-                            type="text"
-                            value={choose.name}
-                            onChange={(e) =>
-                              handleChooseChange(
-                                subCatIndex,
-                                subSubCatIndex,
-                                chooseIndex,
-                                e.target.value
-                              )
-                            }
-                          />
-
-                          {/* Options */}
-                          <Label>Options:</Label>
-                          {choose.options.map((option, optionIndex) => (
-                            <div key={optionIndex} className="mb-2">
-                              <Input
-                                type="text"
-                                value={option}
-                                onChange={(e) =>
-                                  handleOptionChange(
-                                    subCatIndex,
-                                    subSubCatIndex,
-                                    chooseIndex,
-                                    optionIndex,
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </div>
-                          ))}
-                          <Button
-                            type="button"
-                            onClick={() =>
-                              addOption(
-                                subCatIndex,
-                                subSubCatIndex,
-                                chooseIndex
-                              )
-                            }
-                          >
-                            Add Option
-                          </Button>
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        onClick={() => addChoose(subCatIndex, subSubCatIndex)}
+                        className="w-full text-left px-4 py-2 rounded-lg transition-all duration-300 hover:bg-blue-50 hover:text-blue-700"
                       >
-                        Add Choose
+                        {subCategory.name}
                       </Button>
-                    </div>
-                  )
-                )}
-                <Button
-                  type="button"
-                  onClick={() => addSubSubCategory(subCatIndex)}
-                >
-                  Add Sub-Sub-Category
-                </Button>
-              </div>
-            ))}
-            <Button type="button" onClick={addSubCategory}>
-              Add Sub-Category
-            </Button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
+        ))}
+      </motion.div>
 
-          {/* Submit Button */}
-          <Button onClick={handleSubmit} className="mt-4">
-            Create Category
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Listings */}
+      <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+        {selectedCategory || "Бүх зарууд"}
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {currentListings.map((item) => (
+          <Card
+            key={item.id}
+            className="shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-transform transform hover:scale-105"
+          >
+            <img
+              src={item.image}
+              alt={item.title}
+              className="w-full h-72 object-cover"
+            />
+            <CardContent className="p-4 bg-white">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {item.title}
+              </h3>
+              <p className="text-gray-600">{item.price}</p>
+              <Button className="mt-4 w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                Дэлгэрэнгүй
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center mt-8">
+        {Array.from(
+          { length: Math.ceil(filteredListings.length / listingsPerPage) },
+          (_, i) => (
+            <Button
+              key={i + 1}
+              variant={currentPage === i + 1 ? "default" : "ghost"}
+              onClick={() => paginate(i + 1)}
+              className="mx-1"
+            >
+              {i + 1}
+            </Button>
+          )
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="mt-12 py-6 border-t text-center text-gray-500">
+        <p>© 2025 Unegui.mn. Бүх эрх хуулиар хамгаалагдсан.</p>
+      </footer>
     </div>
   );
-};
-
-export default Page;
+}
