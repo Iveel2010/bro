@@ -1,87 +1,191 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Menu, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 
 // Category Data
 const categoryData = [
   {
     name: "Үл хөдлөх",
+    subCategories: [
+      { name: "Үл хөдлөх зарна" },
+      { name: "Үл хөдлөх түрээслүүлнэ" },
+      { name: "Гараж зарна" },
+      { name: "Оффис зарна" },
+    ],
   },
   {
     name: "Техник хэрэгсэл",
+    subCategories: [
+      { name: "Утас" },
+      { name: "Компьютер" },
+      { name: "Гэр ахуйн техник" },
+      { name: "Камер, зураг" },
+    ],
   },
   {
     name: "Тээврийн хэрэгсэл",
+    subCategories: [
+      { name: "Автомашин" },
+      { name: "Мотоцикл" },
+      { name: "Дугуй" },
+      { name: "Самолет" },
+    ],
   },
   {
     name: "Ажил, Мэргэжил",
+    subCategories: [
+      { name: "Ажил хайх" },
+      { name: "Ажилтан хайх" },
+      { name: "Фриланс" },
+    ],
   },
   {
     name: "Хувцас, гоёл чимэглэл",
+    subCategories: [
+      { name: "Эрэгтэй хувцас" },
+      { name: "Эмэгтэй хувцас" },
+      { name: "Гоёл чимэглэл" },
+    ],
   },
   {
     name: "Спорт, фитнес",
+    subCategories: [
+      { name: "Фитнес тоног төхөөрөмж" },
+      { name: "Дугуй, тээвэр" },
+      { name: "Бусад" },
+    ],
   },
 ];
 
-type Listings = {
-  id: string;
-  createdAt: string;
-  description: string;
-  images: string[];
-  price: string;
-  status: string;
-  title: string;
-  updatedAt: string;
-  views: string;
-};
+// Listings Data
+const listings = [
+  {
+    id: 1,
+    title: "2 өрөө байр зарна",
+    price: "180 сая ₮",
+    image:
+      "https://cdn1.unegui.mn/media/cache1/15/22/15227fac500cd64891d2f6e9f536bd1a.jpg",
+    category: "Үл хөдлөх зарна",
+  },
+  {
+    id: 2,
+    title: "3 өрөө байр түрээслүүлнэ",
+    price: "1.5 сая ₮/сар",
+    image:
+      "https://cdn1.unegui.mn/media/cache1/15/22/15227fac500cd64891d2f6e9f536bd1a.jpg",
+    category: "Үл хөдлөх түрээслүүлнэ",
+  },
+  {
+    id: 3,
+    title: "Хувийн оффис зарна",
+    price: "250 сая ₮",
+    image:
+      "https://cdn1.unegui.mn/media/cache1/27/fd/27fd7717c734d5a191a76b7dc2aeb0d6.jpg",
+    category: "Үл хөдлөх зарна",
+  },
+  {
+    id: 4,
+    title: "Гараж түрээслүүлнэ",
+    price: "500,000 ₮/сар",
+    image: "https://www.metgar.ru/editor_images/4x6/4-6-5-mitten-sg-1.jpg",
+    category: "Үл хөдлөх түрээслүүлнэ",
+  },
+  {
+    id: 5,
+    title: "iPhone 14 Pro Max зарна",
+    price: "3,500,000 ₮",
+    image:
+      "https://alephksa.com/cdn/shop/files/iPhone_14_Pro_Max_Deep_Purple_PDP_Image_Position-1a_EN_2cc4a45e-68a5-4280-a1c6-61216aadc236.jpg?v=1688732636",
+    category: "Утас",
+  },
+  {
+    id: 6,
+    title: "MacBook Pro 16 M2 зарна",
+    price: "6,000,000 ₮",
+    image:
+      "https://www.cnet.com/a/img/resize/9624241ec6785ab68e2092e9656bc16c73d75cb1/hub/2023/01/21/ec79d7fc-9235-4830-8fc1-77db12800b97/apple-macbook-pro-16-2023-3214.jpg?auto=webp&fit=crop&height=1200&width=1200",
+    category: "Компьютер",
+  },
+  {
+    id: 7,
+    title: "Toyota Prius 2020 зарна",
+    price: "45,000,000 ₮",
+    image:
+      "https://media.ed.edmunds-media.com/toyota/prius-prime/2020/oem/2020_toyota_prius-prime_4dr-hatchback_limited_fq_oem_1_1600.jpg",
+    category: "Автомашин",
+  },
+  {
+    id: 8,
+    title: "Хүүхдийн дугуй зарна",
+    price: "150,000 ₮",
+    image:
+      "https://ubn.mn/storage/10.23/%D0%B7%D1%83%D1%80%D0%B0%D0%B311%20%2898%29.jpg",
+    category: "Дугуй",
+  },
+  {
+    id: 9,
+    title: "Samsung Galaxy S23 Ultra зарна",
+    price: "4,200,000 ₮",
+    image: "https://m.media-amazon.com/images/I/71EYdOx09+L._AC_SL1500_.jpg",
+    category: "Утас",
+  },
+  {
+    id: 10,
+    title: "Хувцасны шүүгээ зарна",
+    price: "200,000 ₮",
+    image:
+      "https://mrp.market.mn/product_images/image/000/027/545/original.webp?1701412796",
+    category: "Гэр ахуйн техник",
+  },
+  {
+    id: 11,
+    title: "Фитнес дугуй зарна",
+    price: "1,200,000 ₮",
+    image: "https://www.dhzfitness.com/uploads/X962-Spinning-Bike_3.jpg",
+    category: "Спорт, фитнес",
+  },
+  {
+    id: 12,
+    title: "Алтан бөгж зарна",
+    price: "1,500,000 ₮",
+    image:
+      "https://cdnp.cody.mn/spree/images/2830034/zoom/DSC03605_copy.jpg?1738167418",
+    category: "Гоёл чимэглэл",
+  },
+];
+
 export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubCategory, setSelectedSubCategory] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [listings, setListings] = useState<Listings>([]);
   const listingsPerPage = 8;
-  const getProduct = async () => {
-    try {
-      const resJSON = await fetch("/api/product", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
 
-      const data = await resJSON.json();
-
-      console.log("Fetched Data:", data); // Debugging
-      if (Array.isArray(data.product)) {
-        setListings(data.product); // Ensure it's an array
-      } else {
-        console.log("shut"); // Prevent errors
-      }
-    } catch (error) {
-      console.error("Error fetching product data:", error);
-    }
-  };
-
-  useEffect(() => {
-    getProduct();
-  }, []);
+  // Filter Listings
+  const filteredListings = listings.filter((item) => {
+    const matchesSearch = item.title
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory
+      ? item.category.includes(selectedCategory)
+      : true;
+    const matchesSubCategory = selectedSubCategory
+      ? item.category === selectedSubCategory
+      : true;
+    return matchesSearch && matchesCategory && matchesSubCategory;
+  });
 
   // Pagination Logic
   const indexOfLastListing = currentPage * listingsPerPage;
   const indexOfFirstListing = indexOfLastListing - listingsPerPage;
+  const currentListings = filteredListings.slice(
+    indexOfFirstListing,
+    indexOfLastListing
+  );
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
@@ -183,25 +287,16 @@ export default function HomePage() {
         {selectedCategory || "Бүх зарууд"}
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {listings.map((item) => (
+        {currentListings.map((item) => (
           <Card
             key={item.id}
             className="shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-transform transform hover:scale-105"
           >
-            <Carousel className="w-full max-w-xs">
-              <CarouselContent>
-                {item.images.map((image, index) => (
-                  <CarouselItem key={index}>
-                    <img
-                      src={image}
-                      alt={item.title}
-                      className="w-full h-72 object-cover"
-                    />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </Carousel>
-
+            <img
+              src={item.image}
+              alt={item.title}
+              className="w-full h-72 object-cover"
+            />
             <CardContent className="p-4 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">
                 {item.title}
@@ -214,10 +309,11 @@ export default function HomePage() {
           </Card>
         ))}
       </div>
+
       {/* Pagination */}
       <div className="flex justify-center mt-8">
         {Array.from(
-          { length: Math.ceil(listings.length / listingsPerPage) },
+          { length: Math.ceil(filteredListings.length / listingsPerPage) },
           (_, i) => (
             <Button
               key={i + 1}

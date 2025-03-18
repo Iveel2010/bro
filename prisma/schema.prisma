@@ -15,7 +15,7 @@ datasource db {
 
 model User {
   id         String  @id @default(uuid())
-  email      String  @unique @map("user_email")
+  email      String  @unique 
   userName   String  @unique
   profileImg String?
   password   String
@@ -89,11 +89,26 @@ model Post {
   updatedAt       DateTime @updatedAt
   deletedAt       DateTime?  // Soft delete
 }
-
 enum PostStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+model Product{
+  id              String           @id @default(cuid())
+  title           String
+  price           String
+  views           Int      @default(0)
+  description     String
+  status          ProductStatus @default(NEW)
+  images          String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum ProductStatus {
+  NEW
+  OLD
 }
 
 model PostImage {
