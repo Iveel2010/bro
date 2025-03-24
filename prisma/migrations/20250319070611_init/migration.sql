@@ -4,10 +4,13 @@ CREATE TYPE "Role" AS ENUM ('ADMIN', 'USER', 'MAINADMIN', 'COMPANY');
 -- CreateEnum
 CREATE TYPE "PostStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
 
+-- CreateEnum
+CREATE TYPE "ProductStatus" AS ENUM ('NEW', 'OLD');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
-    "user_email" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
     "userName" TEXT NOT NULL,
     "profileImg" TEXT,
     "password" TEXT NOT NULL,
@@ -80,6 +83,21 @@ CREATE TABLE "Post" (
 );
 
 -- CreateTable
+CREATE TABLE "Product" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "price" TEXT NOT NULL,
+    "views" INTEGER NOT NULL DEFAULT 0,
+    "description" TEXT NOT NULL,
+    "status" "ProductStatus" NOT NULL DEFAULT 'NEW',
+    "images" TEXT[],
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Product_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PostImage" (
     "id" TEXT NOT NULL,
     "url" TEXT NOT NULL,
@@ -111,7 +129,7 @@ CREATE TABLE "Comment" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_user_email_key" ON "User"("user_email");
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_userName_key" ON "User"("userName");

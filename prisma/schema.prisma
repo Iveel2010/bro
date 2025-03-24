@@ -20,8 +20,6 @@ model User {
   profileImg String?
   password   String
   role       Role    @default(USER)
-  posts      Post[]
-  comments   Comment[]
   updatedAt  DateTime @updatedAt
   createdAt  DateTime @default(now())
 }
@@ -33,66 +31,25 @@ enum Role {
   COMPANY
 }
 
-model Category {
-  id            String       @id @default(cuid())
-  name          String       @unique
-  subCategories SubCategory[]
-}
-
-model SubCategory {
-  id               String         @id @default(cuid())
-  name             String
-  categoryId       String
-  category         Category       @relation(fields: [categoryId], references: [id])
-  subSubCategories SubSubCategory[]
-}
-
-model SubSubCategory {
-  id              String       @id @default(cuid())
-  name            String
-  subCategoryId   String
-  subCategory     SubCategory  @relation(fields: [subCategoryId], references: [id])
-  chooses         Choose[]
-  posts          Post[]
-}
-
-model Choose {
-  id               String       @id @default(cuid())
-  name             String
-  subSubCategoryId String
-  subSubCategory   SubSubCategory @relation(fields: [subSubCategoryId], references: [id])
-  options         ChooseOption[]
-}
-
-model ChooseOption {
-  id       String  @id @default(cuid())
-  name     String
-  chooseId String
-  choose   Choose @relation(fields: [chooseId], references: [id])
-}
 
 model Post {
   id              String           @id @default(cuid())
   title           String
-  quantity        Int
+  price           String
   views           Int      @default(0)
   description     String
-  status          PostStatus @default(DRAFT)
-  images          PostImage[]
-  userId          String?
-  user            User? @relation(fields: [userId], references: [id])
-  subSubCategoryId String?        
-  subSubCategory  SubSubCategory? @relation(fields: [subSubCategoryId], references: [id])
-  selectedChooses SelectedChoose[]
-  comments        Comment[]
+  status          POSTStatus @default(NEW)
+  images          String[]
+  category        String
+  subCategory     String
+  subSubCategory  String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?  // Soft delete
 }
-enum PostStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
+enum POSTStatus {
+NEW
+USED
+OLD
 }
 model Product{
   id              String           @id @default(cuid())
@@ -111,28 +68,6 @@ enum ProductStatus {
   OLD
 }
 
-model PostImage {
-  id        String  @id @default(cuid())
-  url       String
-  postId    String
-  post      Post @relation(fields: [postId], references: [id])
-}
 
-model SelectedChoose {
-  id              String     @id @default(cuid())
-  choosesName     String
-  selectedOption  String
-  postId          String
-  post            Post   @relation(fields: [postId], references: [id])
-}
 
-model Comment {
-  id         String  @id @default(cuid())
-  content    String
-  userId     String
-  user       User    @relation(fields: [userId], references: [id])
-  postId     String
-  post       Post    @relation(fields: [postId], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
+
