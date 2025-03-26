@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Menu } from "lucide-react";
+import { Search, Menu, Heart, Eye, Clock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -19,8 +19,10 @@ import {
 } from "@/components/ui/carousel";
 import { motion } from "framer-motion";
 import { useDebounce } from "use-debounce";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import Autoplay from "embla-carousel-autoplay";
 
-// Define types
 type Listing = {
   id: string;
   title: string;
@@ -42,7 +44,6 @@ type Category = {
   subCategories: string[];
 };
 
-// Categories data
 const categories: Category[] = [
   {
     name: "Үл хөдлөх",
@@ -52,7 +53,7 @@ const categories: Category[] = [
   {
     name: "Техник хэрэгсэл",
     icon: "💻",
-    subCategories: ["Компьютер", "Гар утас", "Техник"],
+    subCategories: ["Компьютер", "Гар утас"],
   },
   {
     name: "Тээврийн хэрэгсэл",
@@ -78,7 +79,7 @@ const categories: Category[] = [
 
 export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm] = useDebounce(searchTerm, 300); // Debounce search term
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(
     null
@@ -86,8 +87,8 @@ export default function HomePage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
-  // Fetch listings
   useEffect(() => {
     async function fetchProducts() {
       try {
@@ -105,7 +106,18 @@ export default function HomePage() {
     fetchProducts();
   }, []);
 
-  // Filter listings
+  const toggleFavorite = (listingId: string) => {
+    setFavorites((prev) => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(listingId)) {
+        newFavorites.delete(listingId);
+      } else {
+        newFavorites.add(listingId);
+      }
+      return newFavorites;
+    });
+  };
+
   const filteredListings = listings.filter((listing) => {
     return (
       (selectedCategory ? listing.category === selectedCategory : true) &&
@@ -121,27 +133,25 @@ export default function HomePage() {
     );
   });
 
-  // Handle category selection
   const handleCategoryClick = (category: string) => {
     setSelectedCategory(category === selectedCategory ? null : category);
-    setSelectedSubCategory(null); // Reset sub-category when category changes
+    setSelectedSubCategory(null);
   };
 
-  // Handle sub-category selection
   const handleSubCategoryClick = (subCategory: string) => {
     setSelectedSubCategory(
       subCategory === selectedSubCategory ? null : subCategory
     );
   };
 
-  // Reset all filters
   const resetFilters = () => {
     setSelectedCategory(null);
     setSelectedSubCategory(null);
+    setSearchTerm("");
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto px-4 py-6 max-w-7xl">
       {/* Navbar */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -149,10 +159,15 @@ export default function HomePage() {
         transition={{ duration: 0.5 }}
         className="flex items-center justify-between py-4 mb-8 border-b"
       >
-        <h1 className="text-3xl font-bold">Amarhan.mn</h1>
-        <Button variant="outline" aria-label="Menu">
-          <Menu className="w-6 h-6" />
-        </Button>
+        <h1 className="text-3xl font-bold text-blue-600">Amarhan.mn</h1>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" aria-label="Search">
+            <Search className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Menu">
+            <Menu className="w-5 h-5" />
+          </Button>
+        </div>
       </motion.div>
 
       {/* Search Bar */}
@@ -162,13 +177,16 @@ export default function HomePage() {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="mb-8"
       >
-        <Input
-          placeholder="Жишээ нь: Машин, Оффис, Гар утас..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          aria-label="Search"
-        />
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input
+            placeholder="Жишээ нь: Машин, Оффис, Гар утас..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            aria-label="Search"
+          />
+        </div>
       </motion.div>
 
       {/* Category Filter */}
@@ -178,28 +196,26 @@ export default function HomePage() {
         transition={{ duration: 0.5, delay: 0.4 }}
         className="mb-6"
       >
-        <h2 className="text-xl font-semibold mb-2">Категори</h2>
-        <div className="flex flex-wrap gap-4 mb-4">
-          {/* "Бүх зарууд" Button */}
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">Категори</h2>
+        <div className="flex flex-wrap gap-3 mb-4">
           <Button
-            variant={!selectedCategory ? "default" : "ghost"}
+            variant={!selectedCategory ? "default" : "outline"}
             onClick={resetFilters}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm border hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm"
             aria-label="Show all listings"
           >
             <span className="text-lg">📦</span>
             <span className="text-sm font-medium">Бүх зарууд</span>
           </Button>
 
-          {/* Category Buttons */}
           {categories.map((category) => (
             <DropdownMenu key={category.name}>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant={
-                    selectedCategory === category.name ? "default" : "ghost"
+                    selectedCategory === category.name ? "default" : "outline"
                   }
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm border hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm"
                   onClick={() => handleCategoryClick(category.name)}
                   aria-label={`Select ${category.name}`}
                 >
@@ -208,14 +224,16 @@ export default function HomePage() {
                 </Button>
               </DropdownMenuTrigger>
               {selectedCategory === category.name && (
-                <DropdownMenuContent>
+                <DropdownMenuContent className="min-w-[200px]">
                   {category.subCategories.map((subCategory) => (
                     <DropdownMenuItem
                       key={subCategory}
                       onClick={() => handleSubCategoryClick(subCategory)}
                       aria-label={`Select ${subCategory}`}
                       className={
-                        selectedSubCategory === subCategory ? "bg-blue-50" : ""
+                        selectedSubCategory === subCategory
+                          ? "bg-blue-50 text-blue-600"
+                          : ""
                       }
                     >
                       {subCategory}
@@ -228,65 +246,196 @@ export default function HomePage() {
         </div>
       </motion.div>
 
-      {/* Listings */}
-      <motion.h2
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        className="text-2xl font-semibold mb-4"
-      >
-        {selectedCategory || "Бүх зарууд"}
-      </motion.h2>
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      {/* Listings Section */}
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-6">
+          <motion.h2
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="text-2xl font-bold text-gray-800"
+          >
+            {selectedCategory || "Бүх зарууд"}
+            {selectedSubCategory && (
+              <span className="text-blue-600"> › {selectedSubCategory}</span>
+            )}
+          </motion.h2>
+
+          {filteredListings.length > 0 && (
+            <div className="text-sm text-gray-500">
+              {filteredListings.length} үр дүн олдлоо
+            </div>
+          )}
         </div>
-      ) : error ? (
-        <div className="text-red-500 text-center">{error}</div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.8 }}
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
-        >
-          {filteredListings.map((item) => (
-            <Card
-              key={item.id}
-              className="shadow-md rounded-xl overflow-hidden hover:shadow-lg transition-shadow"
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <Card key={i} className="overflow-hidden">
+                <Skeleton className="h-48 w-full rounded-t-lg" />
+                <CardContent className="p-4 space-y-3">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <div className="flex justify-between items-center pt-2">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-9 w-24 rounded-md" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="text-red-500 mb-4 text-lg">{error}</div>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Дахин оролдох
+            </Button>
+          </div>
+        ) : filteredListings.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col items-center justify-center py-16 text-center"
+          >
+            <Search className="w-12 h-12 text-gray-400 mb-4" />
+            <h3 className="text-xl font-medium text-gray-700 mb-2">
+              Илэрц олдсонгүй
+            </h3>
+            <p className="text-gray-500 mb-6 max-w-md">
+              Хайлттай тохирох зар олдсонгүй. Өөр хайлт хийж үзэх эсвэл
+              шүүлтүүрээ өөрчлөх үү?
+            </p>
+            <Button
+              onClick={resetFilters}
+              variant="outline"
+              className="flex items-center gap-2"
             >
-              <div className="relative w-full h-56 bg-gray-100">
-                <Carousel className="absolute w-full h-full">
-                  <CarouselContent>
-                    {item.images.map((image, index) => (
-                      <CarouselItem key={index} className="w-full h-full">
-                        <img
-                          src={image}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
+              Шүүлтүүрийг арилгах
+            </Button>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+          >
+            {filteredListings.map((item) => (
+              <Card
+                key={item.id}
+                className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-200 rounded-xl hover:border-blue-200"
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`absolute top-2 right-2 z-10 rounded-full bg-white/80 hover:bg-white transition-colors shadow-sm ${
+                    favorites.has(item.id)
+                      ? "text-red-500"
+                      : "text-gray-500 hover:text-red-500"
+                  }`}
+                  aria-label="Add to favorites"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(item.id);
+                  }}
+                >
+                  <Heart
+                    className="w-4 h-4"
+                    fill={favorites.has(item.id) ? "currentColor" : "none"}
+                  />
+                </Button>
+
+                <div className="relative w-full aspect-square bg-gray-100 rounded-t-xl overflow-hidden">
+                  <Carousel
+                    className="w-full h-full"
+                    plugins={[
+                      Autoplay({
+                        delay: 5000,
+                        stopOnInteraction: false,
+                      }),
+                    ]}
+                    opts={{
+                      loop: true,
+                      align: "start",
+                    }}
+                  >
+                    <CarouselContent>
+                      {item.images.map((image, index) => (
+                        <CarouselItem key={index} className="w-full h-full">
+                          <img
+                            src={image}
+                            alt={item.title}
+                            className="w-full h-full object-fill transition-transform duration-500 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+
+                    {item.images.length > 1 && (
+                      <>
+                        <CarouselPrevious className="left-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white" />
+                        <CarouselNext className="right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 hover:bg-white" />
+                      </>
+                    )}
+                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+                      {item.images.map((_, idx) => (
+                        <div
+                          key={idx}
+                          className={`w-2 h-2 rounded-full transition-all ${
+                            idx === 0 ? "bg-white" : "bg-white/50"
+                          }`}
                         />
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                </Carousel>
-              </div>
-              <CardContent className="p-4 flex flex-col gap-2">
-                <h3 className="text-lg font-semibold truncate">{item.title}</h3>
-                <p className="text-gray-500 text-sm truncate">
-                  {item.description}
-                </p>
-                <div className="flex justify-between items-center">
-                  <span className="text-blue-600 font-bold">{item.price}</span>
-                  <Button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">
-                    Дэлгэрэнгүй
-                  </Button>
+                      ))}
+                    </div>
+                  </Carousel>
+
+                  {item.status && (
+                    <Badge
+                      variant="secondary"
+                      className="absolute top-2 left-2 bg-white text-gray-800 border border-gray-300"
+                    >
+                      {item.status}
+                    </Badge>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </motion.div>
-      )}
+
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <h3 className="text-lg font-semibold line-clamp-2">
+                      {item.title}
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center text-sm text-gray-500 space-x-2">
+                    <Clock className="w-4 h-4" />
+                    <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                  </div>
+
+                  <div className="flex items-center text-sm text-gray-500 space-x-2">
+                    <Eye className="w-4 h-4" />
+                    <span>{item.views} үзсэн</span>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-blue-600 font-bold text-lg">
+                      {item.price}
+                    </span>
+                    <Button
+                      variant="outline"
+                      className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                    >
+                      Дэлгэрэнгүй
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }
