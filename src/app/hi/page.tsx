@@ -3,7 +3,21 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Menu, Heart, Eye, Clock } from "lucide-react";
+import {
+  Search,
+  Menu,
+  Heart,
+  Eye,
+  Clock,
+  Home,
+  MapPin,
+  Building,
+  Layers,
+  Plus,
+  MessageCircle,
+  Filter,
+  X,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -22,6 +36,13 @@ import { useDebounce } from "use-debounce";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import Autoplay from "embla-carousel-autoplay";
+import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+
+// Dynamically import the map component to avoid SSR issues
+const MapWithNoSSR = dynamic(() => import("@/components/Map"), {
+  ssr: false,
+});
 
 type Listing = {
   id: string;
@@ -31,80 +52,100 @@ type Listing = {
   description: string;
   status: string;
   images: string[];
-  category: string;
-  subCategory: string;
-  subSubCategory: string;
+  type: string;
+  location: string;
+  size: string;
+  rooms: string;
   createdAt: string;
   updatedAt: string;
+  lat?: number;
+  lng?: number;
+  userId: string;
 };
 
-type Category = {
+type User = {
+  id: string;
   name: string;
-  icon: string;
-  subCategories: string[];
+  email: string;
+  phone?: string;
 };
 
-const categories: Category[] = [
-  {
-    name: "Үл хөдлөх",
-    icon: "🏠",
-    subCategories: ["Үл хөдлөх зарна", "Газар", "Оффис"],
-  },
-  {
-    name: "Техник хэрэгсэл",
-    icon: "💻",
-    subCategories: ["Компьютер", "Гар утас"],
-  },
-  {
-    name: "Тээврийн хэрэгсэл",
-    icon: "🚗",
-    subCategories: ["Машин", "Мотоцикл", "Велосипед"],
-  },
-  { name: "Ажил, Мэргэжил", icon: "💼", subCategories: ["Ажил", "Мэргэжил"] },
-  {
-    name: "Хувцас, гоёл чимэглэл",
-    icon: "👗",
-    subCategories: ["Эмэгтэй хувцас", "Эрэгтэй хувцас", "Гоёл чимэглэл"],
-  },
-  {
-    name: "Спорт, фитнес",
-    icon: "🏋️",
-    subCategories: [
-      "Дасгалын хэрэгсэл",
-      "Спортын хувцас",
-      "Фитнес тоног төхөөрөмж",
-    ],
-  },
+const propertyTypes = [
+  { name: "Орон сууц", value: "apartment", icon: <Home className="w-4 h-4" /> },
+  { name: "Хувийн байшин", value: "house", icon: <Home className="w-4 h-4" /> },
+  { name: "Газар", value: "land", icon: <MapPin className="w-4 h-4" /> },
+  { name: "Оффис", value: "office", icon: <Building className="w-4 h-4" /> },
 ];
 
-export default function HomePage() {
+export default function RealEstatePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(
-    null
-  );
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
+  const [roomCount, setRoomCount] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showListingForm, setShowListingForm] = useState(false);
+  const [newListing, setNewListing] = useState<Partial<Listing>>({
+    title: "",
+    price: "",
+    description: "",
+    type: "apartment",
+    location: "",
+    size: "",
+    rooms: "",
+    images: [],
+  });
+  const [selectedLocation, setSelectedLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [activeChat, setActiveChat] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Record<string, string[]>>({});
+  const [newMessage, setNewMessage] = useState("");
+
+  const router = useRouter();
 
   useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const res = await fetch("/api/post");
-        if (!res.ok) throw new Error("Failed to fetch data");
-        const data = await res.json();
-        setListings(Array.isArray(data.posts) ? data.posts : []);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setError("Failed to load listings. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
+    // Check if user is logged in
+    const user = localStorage.getItem("user");
+    if (user) {
+      setCurrentUser(JSON.parse(user));
     }
-    fetchProducts();
+
+    fetchListings();
   }, []);
+
+  useEffect(() => {
+    fetchListings();
+  }, [selectedType, debouncedSearchTerm]);
+
+  const fetchListings = async () => {
+    try {
+      setIsLoading(true);
+      let url = "/api/post";
+      const params = new URLSearchParams();
+
+      if (selectedType) params.append("type", selectedType);
+      if (searchTerm) params.append("search", searchTerm);
+
+      if (params.toString()) url += `?${params.toString()}`;
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch data");
+      const data = await res.json();
+      setListings(data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setError("Failed to load listings. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const toggleFavorite = (listingId: string) => {
     setFavorites((prev) => {
@@ -119,35 +160,117 @@ export default function HomePage() {
   };
 
   const filteredListings = listings.filter((listing) => {
-    return (
-      (selectedCategory ? listing.category === selectedCategory : true) &&
-      (selectedSubCategory
-        ? listing.subCategory === selectedSubCategory
-        : true) &&
-      (listing.title
+    const matchesType = selectedType ? listing.type === selectedType : true;
+    const matchesSearch =
+      listing.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      listing.description
         .toLowerCase()
         .includes(debouncedSearchTerm.toLowerCase()) ||
-        listing.description
-          .toLowerCase()
-          .includes(debouncedSearchTerm.toLowerCase()))
-    );
+      listing.location
+        .toLowerCase()
+        .includes(debouncedSearchTerm.toLowerCase());
+    const matchesPrice =
+      parseInt(listing.price.replace(/\D/g, "")) >= priceRange[0] &&
+      parseInt(listing.price.replace(/\D/g, "")) <= priceRange[1];
+    const matchesRooms = roomCount ? listing.rooms === roomCount : true;
+
+    return matchesType && matchesSearch && matchesPrice && matchesRooms;
   });
 
-  const handleCategoryClick = (category: string) => {
-    setSelectedCategory(category === selectedCategory ? null : category);
-    setSelectedSubCategory(null);
-  };
-
-  const handleSubCategoryClick = (subCategory: string) => {
-    setSelectedSubCategory(
-      subCategory === selectedSubCategory ? null : subCategory
-    );
+  const handleTypeClick = (type: string) => {
+    setSelectedType(type === selectedType ? null : type);
   };
 
   const resetFilters = () => {
-    setSelectedCategory(null);
-    setSelectedSubCategory(null);
+    setSelectedType(null);
     setSearchTerm("");
+    setPriceRange([0, 1000000]);
+    setRoomCount(null);
+    setShowFilters(false);
+  };
+
+  const handleLogin = () => {
+    // In a real app, this would be a proper auth flow
+    const mockUser = {
+      id: "user123",
+      name: "Бат",
+      email: "bataa@example.com",
+      phone: "99119911",
+    };
+    localStorage.setItem("user", JSON.stringify(mockUser));
+    setCurrentUser(mockUser);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setCurrentUser(null);
+  };
+
+  const handleCreateListing = async () => {
+    try {
+      const listingToCreate = {
+        ...newListing,
+        lat: selectedLocation?.lat,
+        lng: selectedLocation?.lng,
+        userId: currentUser?.id,
+      };
+
+      const res = await fetch("/api/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(listingToCreate),
+      });
+
+      if (!res.ok) throw new Error("Failed to create listing");
+
+      const createdListing = await res.json();
+      setListings([createdListing, ...listings]);
+      setShowListingForm(false);
+      setNewListing({
+        title: "",
+        price: "",
+        description: "",
+        type: "apartment",
+        location: "",
+        size: "",
+        rooms: "",
+        images: [],
+      });
+      setSelectedLocation(null);
+    } catch (error) {
+      console.error("Error creating listing:", error);
+      setError("Failed to create listing. Please try again.");
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      const imageUrls = files.map((file) => URL.createObjectURL(file));
+      setNewListing((prev) => ({
+        ...prev,
+        images: [...(prev.images || []), ...imageUrls],
+      }));
+    }
+  };
+
+  const startChat = (listingId: string) => {
+    setActiveChat(listingId);
+    if (!messages[listingId]) {
+      setMessages((prev) => ({ ...prev, [listingId]: [] }));
+    }
+  };
+
+  const sendMessage = () => {
+    if (newMessage.trim() && activeChat) {
+      setMessages((prev) => ({
+        ...prev,
+        [activeChat]: [...(prev[activeChat] || []), newMessage],
+      }));
+      setNewMessage("");
+    }
   };
 
   return (
@@ -159,13 +282,38 @@ export default function HomePage() {
         transition={{ duration: 0.5 }}
         className="flex items-center justify-between py-4 mb-8 border-b"
       >
-        <h1 className="text-3xl font-bold text-blue-600">Amarhan.mn</h1>
+        <h1 className="text-3xl font-bold text-blue-600">Үл Хөдлөх Зар</h1>
         <div className="flex items-center gap-4">
+          {currentUser ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <span className="hidden sm:inline">{currentUser.name}</span>
+                  <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full">
+                    {currentUser.name.charAt(0)}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setShowListingForm(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Зар нэмэх
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/profile")}>
+                  <Heart className="w-4 h-4 mr-2" />
+                  Хадгалсан зар
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <X className="w-4 h-4 mr-2" />
+                  Гарах
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button onClick={handleLogin}>Нэвтрэх</Button>
+          )}
           <Button variant="ghost" size="icon" aria-label="Search">
             <Search className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" aria-label="Menu">
-            <Menu className="w-5 h-5" />
           </Button>
         </div>
       </motion.div>
@@ -177,74 +325,364 @@ export default function HomePage() {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="mb-8"
       >
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <Input
-            placeholder="Жишээ нь: Машин, Оффис, Гар утас..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            aria-label="Search"
-          />
+        <div className="flex gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Input
+              placeholder="Хайх... Жишээ нь: Хан-Уул дүүрэг, 3 өрөө байр"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              aria-label="Search"
+            />
+          </div>
+          <Button
+            onClick={() => setShowFilters(!showFilters)}
+            variant={showFilters ? "default" : "outline"}
+            className="flex items-center gap-2"
+          >
+            <Filter className="w-4 h-4" />
+            <span className="hidden sm:inline">Шүүлтүүр</span>
+          </Button>
         </div>
+
+        {/* Advanced Filters */}
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            transition={{ duration: 0.3 }}
+            className="mt-4 p-4 bg-gray-50 rounded-lg"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
+                <h3 className="text-sm font-medium mb-2">Үнэ</h3>
+                <div className="flex items-center gap-4">
+                  <Input
+                    type="number"
+                    value={priceRange[0]}
+                    onChange={(e) =>
+                      setPriceRange([
+                        parseInt(e.target.value) || 0,
+                        priceRange[1],
+                      ])
+                    }
+                    placeholder="Min"
+                  />
+                  <span>-</span>
+                  <Input
+                    type="number"
+                    value={priceRange[1]}
+                    onChange={(e) =>
+                      setPriceRange([
+                        priceRange[0],
+                        parseInt(e.target.value) || 1000000,
+                      ])
+                    }
+                    placeholder="Max"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium mb-2">Өрөөний тоо</h3>
+                <div className="flex gap-2">
+                  {["1", "2", "3", "4", "5+"].map((count) => (
+                    <Button
+                      key={count}
+                      variant={roomCount === count ? "default" : "outline"}
+                      onClick={() =>
+                        setRoomCount(roomCount === count ? null : count)
+                      }
+                      className="px-3 py-1"
+                    >
+                      {count}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-end">
+                <Button
+                  onClick={resetFilters}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Шүүлтүүрийг арилгах
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </motion.div>
 
-      {/* Category Filter */}
+      {/* Property Type Filter */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
         className="mb-6"
       >
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">Категори</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">
+          Өмчийн төрөл
+        </h2>
         <div className="flex flex-wrap gap-3 mb-4">
           <Button
-            variant={!selectedCategory ? "default" : "outline"}
+            variant={!selectedType ? "default" : "outline"}
             onClick={resetFilters}
             className="flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm"
             aria-label="Show all listings"
           >
-            <span className="text-lg">📦</span>
-            <span className="text-sm font-medium">Бүх зарууд</span>
+            <span className="text-lg">🏠</span>
+            <span className="text-sm font-medium">Бүх зар</span>
           </Button>
 
-          {categories.map((category) => (
-            <DropdownMenu key={category.name}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={
-                    selectedCategory === category.name ? "default" : "outline"
-                  }
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm"
-                  onClick={() => handleCategoryClick(category.name)}
-                  aria-label={`Select ${category.name}`}
-                >
-                  <span className="text-lg">{category.icon}</span>
-                  <span className="text-sm font-medium">{category.name}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              {selectedCategory === category.name && (
-                <DropdownMenuContent className="min-w-[200px]">
-                  {category.subCategories.map((subCategory) => (
-                    <DropdownMenuItem
-                      key={subCategory}
-                      onClick={() => handleSubCategoryClick(subCategory)}
-                      aria-label={`Select ${subCategory}`}
-                      className={
-                        selectedSubCategory === subCategory
-                          ? "bg-blue-50 text-blue-600"
-                          : ""
-                      }
-                    >
-                      {subCategory}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              )}
-            </DropdownMenu>
+          {propertyTypes.map((type) => (
+            <Button
+              key={type.value}
+              variant={selectedType === type.value ? "default" : "outline"}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm"
+              onClick={() => handleTypeClick(type.value)}
+              aria-label={`Select ${type.name}`}
+            >
+              {type.icon}
+              <span className="text-sm font-medium">{type.name}</span>
+            </Button>
           ))}
         </div>
       </motion.div>
+
+      {/* Create Listing Modal */}
+      {showListingForm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Шинэ зар нэмэх</h2>
+              <Button
+                variant="ghost"
+                onClick={() => setShowListingForm(false)}
+                size="icon"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Гарчиг</label>
+                <Input
+                  value={newListing.title}
+                  onChange={(e) =>
+                    setNewListing({ ...newListing, title: e.target.value })
+                  }
+                  placeholder="Зарны гарчиг"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Үнэ</label>
+                  <Input
+                    value={newListing.price}
+                    onChange={(e) =>
+                      setNewListing({ ...newListing, price: e.target.value })
+                    }
+                    placeholder="Үнэ"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Төрөл
+                  </label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full">
+                        {
+                          propertyTypes.find((t) => t.value === newListing.type)
+                            ?.name
+                        }
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      {propertyTypes.map((type) => (
+                        <DropdownMenuItem
+                          key={type.value}
+                          onClick={() =>
+                            setNewListing({ ...newListing, type: type.value })
+                          }
+                        >
+                          {type.icon}
+                          <span className="ml-2">{type.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Хэмжээ (м²)
+                  </label>
+                  <Input
+                    value={newListing.size}
+                    onChange={(e) =>
+                      setNewListing({ ...newListing, size: e.target.value })
+                    }
+                    placeholder="Хэмжээ"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Өрөөний тоо
+                  </label>
+                  <Input
+                    value={newListing.rooms}
+                    onChange={(e) =>
+                      setNewListing({ ...newListing, rooms: e.target.value })
+                    }
+                    placeholder="Өрөөний тоо"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Байршил
+                </label>
+                <Input
+                  value={newListing.location}
+                  onChange={(e) =>
+                    setNewListing({ ...newListing, location: e.target.value })
+                  }
+                  placeholder="Байршил"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Байршлыг газраас сонгох
+                </label>
+                <div className="h-64 rounded-lg overflow-hidden">
+                  <MapWithNoSSR
+                    onLocationSelect={(lat, lng) =>
+                      setSelectedLocation({ lat, lng })
+                    }
+                  />
+                </div>
+                {selectedLocation && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Сонгосон байршил: {selectedLocation.lat.toFixed(4)},{" "}
+                    {selectedLocation.lng.toFixed(4)}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Тайлбар
+                </label>
+                <textarea
+                  value={newListing.description}
+                  onChange={(e) =>
+                    setNewListing({
+                      ...newListing,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full border rounded-lg p-2 min-h-[100px]"
+                  placeholder="Дэлгэрэнгүй тайлбар"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Зураг</label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                />
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {newListing.images?.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt={`Preview ${idx}`}
+                      className="w-16 h-16 object-cover rounded"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowListingForm(false)}
+                >
+                  Цуцлах
+                </Button>
+                <Button onClick={handleCreateListing}>Зар нийтлэх</Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Chat Modal */}
+      {activeChat && (
+        <div className="fixed bottom-4 right-4 w-80 bg-white rounded-lg shadow-lg z-50 border border-gray-200">
+          <div className="bg-blue-600 text-white p-3 rounded-t-lg flex justify-between items-center">
+            <h3 className="font-medium">Чат</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-blue-700"
+              onClick={() => setActiveChat(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="p-3 h-64 overflow-y-auto">
+            {messages[activeChat]?.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`mb-2 p-2 rounded-lg ${
+                  idx % 2 === 0
+                    ? "bg-blue-100 text-blue-900"
+                    : "bg-gray-100 text-gray-900"
+                }`}
+              >
+                {msg}
+              </div>
+            ))}
+          </div>
+          <div className="p-3 border-t flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Мессеж бичих..."
+              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+            />
+            <Button onClick={sendMessage}>
+              <MessageCircle className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Listings Section */}
       <div className="mt-8">
@@ -255,10 +693,9 @@ export default function HomePage() {
             transition={{ duration: 0.3 }}
             className="text-2xl font-bold text-gray-800"
           >
-            {selectedCategory || "Бүх зарууд"}
-            {selectedSubCategory && (
-              <span className="text-blue-600"> › {selectedSubCategory}</span>
-            )}
+            {selectedType
+              ? propertyTypes.find((t) => t.value === selectedType)?.name
+              : "Бүх үл хөдлөх зар"}
           </motion.h2>
 
           {filteredListings.length > 0 && (
@@ -270,7 +707,7 @@ export default function HomePage() {
 
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
+            {[...Array(4)].map((_, i) => (
               <Card key={i} className="overflow-hidden">
                 <Skeleton className="h-48 w-full rounded-t-lg" />
                 <CardContent className="p-4 space-y-3">
@@ -409,6 +846,22 @@ export default function HomePage() {
                     </h3>
                   </div>
 
+                  <div className="flex items-center text-sm text-gray-500">
+                    <MapPin className="w-4 h-4 mr-1" />
+                    <span className="line-clamp-1">{item.location}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center">
+                      <Layers className="w-4 h-4 mr-1 text-gray-500" />
+                      <span>{item.size}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Home className="w-4 h-4 mr-1 text-gray-500" />
+                      <span>{item.rooms}</span>
+                    </div>
+                  </div>
+
                   <div className="flex items-center text-sm text-gray-500 space-x-2">
                     <Clock className="w-4 h-4" />
                     <span>{new Date(item.createdAt).toLocaleDateString()}</span>
@@ -423,12 +876,23 @@ export default function HomePage() {
                     <span className="text-blue-600 font-bold text-lg">
                       {item.price}
                     </span>
-                    <Button
-                      variant="outline"
-                      className="border-blue-500 text-blue-600 hover:bg-blue-50"
-                    >
-                      Дэлгэрэнгүй
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => startChat(item.id)}
+                        className="text-gray-500 hover:text-blue-500"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        onClick={() => router.push(`/hi/${item.id}`)}
+                        variant="outline"
+                        className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                      >
+                        Дэлгэрэнгүй
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

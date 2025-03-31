@@ -13,6 +13,7 @@ model User {
   userName   String   @unique
   profileImg String?
   password   String
+  listings   Listing[]
   role       Role     @default(USER)
   updatedAt  DateTime @updatedAt
   createdAt  DateTime @default(now())
@@ -25,69 +26,26 @@ enum Role {
   COMPANY
 }
 
-model Post {
-  id               String       @id @default(cuid())
-  title            String
-  price            Int
-  views            Int          @default(0)
-  description      String
-  status           POSTStatus   @default(NEW)
-  images           String[]
-  categoryId       String     
-  subCategoryId    String     
-  subSubCategoryId String     
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  category     Category @relation(fields: [categoryId], references: [id])
-  subCategory      SubCategory @relation(fields: [subCategoryId], references: [id])
-  subSubCategory   SubSubCategory @relation(fields: [subSubCategoryId], references: [id])
-}
-
-
-enum POSTStatus {
-  NEW
-  USED
-  OLD
-}
-
-model Category {
-  id            String        @id @default(cuid())
-  name          String
-  icon          String
-  subcategories SubCategory[]
-  posts         Post[]        
-}
-
-model SubCategory {
-  id               String           @id @default(cuid())
-  name             String
-  categoryId       String
-  category         Category         @relation(fields: [categoryId], references: [id])
-  subSubCategories SubSubCategory[]
-  posts         Post[]  
-}
-
-model SubSubCategory {
-  id            String      @id @default(cuid())
-  name          String
-  subCategoryId String
-  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
-  chooses       Choose[]
-  posts         Post[]  
-}
-
-model Choose {
-  id               String         @id @default(cuid())
-  name             String
-  subSubCategoryId String
-  subSubCategory   SubSubCategory @relation(fields: [subSubCategoryId], references: [id])
-  options          ChooseOption[]
-}
-
-model ChooseOption {
-  id       String @id @default(cuid())
-  name     String
-  chooseId String
-  choose   Choose @relation(fields: [chooseId], references: [id])
+model Listing {
+  id          String   @id @default(uuid())
+  title       String
+  price       String
+  views       Int      @default(0)
+  description String
+  status      String?
+  type        String   // apartment, house, land, office
+  location    String
+  size        String
+  rooms       String
+  beds        String
+  baths       String
+  floor       String
+  features    String[]
+  images      String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
 }
